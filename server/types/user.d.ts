@@ -76,7 +76,7 @@ export type UsersResponse = SafeUser[] | { error: string };
  */
 export interface UserUpdatePayload {
   user: User;
-  type: 'created' | 'deleted';
+  type: 'created' | 'deleted' | 'updated';
 }
 
 /**
@@ -87,4 +87,8 @@ export interface UserUpdatePayload {
  */
 export interface UpdateBiographyRequest extends Request {
   // TODO: Task 1 - Define the request interface for updating a user's biography
+  body: {
+    username: string;
+    biography: string;
+  };
 }
