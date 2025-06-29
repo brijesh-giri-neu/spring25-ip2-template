@@ -21,8 +21,7 @@ const ChatsListCard = ({
     className='chats-list-card'
     onClick={() => handleChatSelect(chat._id)}
     role='button'
-    tabIndex={0}
-  >
+    tabIndex={0}>
     <p>{chat.participants.join(', ')}</p>
   </div>
 );

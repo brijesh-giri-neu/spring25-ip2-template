@@ -17,7 +17,7 @@ const useNimGamePage = (gameState: GameInstance) => {
   const { user, socket } = useUserContext();
 
   // TODO: Task 2 - Define the state variable to store the current move (`move`)
-  const [move, setMove] = useState<number | null>(null);  // use null to explicitly represent no move
+  const [move, setMove] = useState<number | null>(null); // use null to explicitly represent no move
 
   const handleMakeMove = async () => {
     // TODO: Task 2 - Emit a socket event to make a move in the Nim game

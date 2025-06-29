@@ -53,7 +53,7 @@ const DirectMessage = () => {
         <div className='chats-list'>
           {/* Use a map to display each of the chats using the ChatsListCard component. 
           Make sure that each component has a _unique_ key. */}
-          {chats.map((chat) => (
+          {chats.map(chat => (
             <ChatsListCard key={chat._id} chat={chat} handleChatSelect={handleChatSelect} />
           ))}
         </div>
@@ -65,7 +65,7 @@ const DirectMessage = () => {
                 {/* Use a map to display each of the messages in the selected chat. 
                 There is a component you can reuse to display this (hint: check the global chat)! 
                 Make sure that each component has a _unique_ key. */}
-                {selectedChat.messages.map((message) => (
+                {selectedChat.messages.map(message => (
                   <MessageCard key={message._id} message={message} />
                 ))}
               </div>
@@ -76,8 +76,8 @@ const DirectMessage = () => {
                   type='text'
                   className='custom-input'
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
+                  onChange={e => setNewMessage(e.target.value)}
+                  onKeyPress={e => {
                     if (e.key === 'Enter') {
                       handleSendMessage();
                     }

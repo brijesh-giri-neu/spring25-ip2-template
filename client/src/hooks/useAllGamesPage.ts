@@ -19,29 +19,17 @@ const useAllGamesPage = () => {
   const [availableGames, setAvailableGames] = useState<GameInstance[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleError = (error: unknown, action: 'fetching' | 'creating') => {
-    console.error(`Failed during game ${action}:`, error);
-  };
-
   const fetchGames = async () => {
     // TODO: Task 2 - Fetch and update the list of available games state
-    try {
-      // Passing undefined for gameType and status to get all games
-      const games = await getGames(undefined, undefined);
-      setAvailableGames(games);
-    } catch (error) {
-      handleError(error, 'fetching');
-    }
+    // Passing undefined for gameType and status to get all games
+    const games = await getGames(undefined, undefined);
+    setAvailableGames(games);
   };
 
   const handleCreateGame = async (gameType: GameType) => {
     // TODO: Task 2 - Create a new game with the provided type
-    try {
-      await createGame(gameType);
-      fetchGames(); // Refresh the list after creating a game
-    } catch (error) {
-      handleError(error, 'creating');
-    }
+    await createGame(gameType);
+    fetchGames(); // Refresh the list after creating a game
   };
 
   const handleJoin = (gameID: string) => {
@@ -51,7 +39,7 @@ const useAllGamesPage = () => {
   // TODO: Task 2 - Implement the `useEffect` hook to fetch the list of available games on component mount
   useEffect(() => {
     fetchGames();
-  }, []);
+  });
 
   const handleToggleModal = () => {
     // TODO: Task 2 - Toggle the visibility of the game creation modal

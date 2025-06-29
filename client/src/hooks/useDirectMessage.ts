@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Chat, ChatUpdatePayload, Message, User } from '../types';
+import { Chat, ChatUpdatePayload, User } from '../types';
 import useUserContext from './useUserContext';
 import { createChat, getChatById, getChatsByUser, sendMessage } from '../services/chatService';
 
@@ -33,7 +33,7 @@ const useDirectMessage = () => {
           msgFrom: user.username,
           msgDateTime: new Date(),
         },
-        selectedChat._id
+        selectedChat._id,
       );
       setNewMessage('');
     }
@@ -92,11 +92,11 @@ const useDirectMessage = () => {
       // currently subscribed to the chat room.
       switch (chatUpdate.type) {
         case 'created':
-          setChats((prevChats) => [...prevChats, chatUpdate.chat]);
+          setChats(prevChats => [...prevChats, chatUpdate.chat]);
           break;
         case 'newMessage':
-          setChats((prevChats) =>
-            prevChats.map((c) => (c._id === chatUpdate.chat._id ? chatUpdate.chat : c))
+          setChats(prevChats =>
+            prevChats.map(c => (c._id === chatUpdate.chat._id ? chatUpdate.chat : c)),
           );
           if (selectedChat?._id === chatUpdate.chat._id) {
             setSelectedChat(chatUpdate.chat);
