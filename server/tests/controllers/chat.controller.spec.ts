@@ -162,7 +162,7 @@ describe('Chat Controller', () => {
 
       // 2) Mock a fully enriched chat
       const mockFoundChat: Chat = {
-        _id: new mongoose.Types.ObjectId(),
+        _id: new mongoose.Types.ObjectId(chatId),
         participants: ['user1'],
         messages: [
           {
@@ -220,7 +220,7 @@ describe('Chat Controller', () => {
       const userId = new mongoose.Types.ObjectId().toString();
 
       const updatedChat: Chat = {
-        _id: new mongoose.Types.ObjectId(),
+        _id: new mongoose.Types.ObjectId(chatId),
         participants: ['user1', 'user2'],
         messages: [],
         createdAt: new Date(),
@@ -228,6 +228,7 @@ describe('Chat Controller', () => {
       };
 
       addParticipantSpy.mockResolvedValue(updatedChat);
+      populateDocumentSpy.mockResolvedValue(updatedChat);
 
       const response = await supertest(app).post(`/chat/${chatId}/addParticipant`).send({ userId });
 
@@ -242,6 +243,7 @@ describe('Chat Controller', () => {
       });
 
       expect(addParticipantSpy).toHaveBeenCalledWith(chatId, userId);
+      expect(populateDocumentSpy).toHaveBeenCalledWith(updatedChat._id?.toString(), 'chat');
     });
 
   });
