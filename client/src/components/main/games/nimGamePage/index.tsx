@@ -1,4 +1,3 @@
-import React from 'react';
 import './index.css';
 import { GameInstance } from '../../../../types';
 import useNimGamePage from '../../../../hooks/useNimGamePage';
@@ -13,6 +12,20 @@ import useNimGamePage from '../../../../hooks/useNimGamePage';
  */
 const NimGamePage = ({ gameState }: { gameState: GameInstance }) => {
   const { user, move, handleMakeMove, handleInputChange } = useNimGamePage(gameState);
+
+  // Dummy game state
+  const nimState = gameState.state as {
+    moves: { numObjects: number }[];
+    player1?: string;
+    player2?: string;
+    remainingObjects: number;
+    winners?: string[];
+    status: string;
+  };
+
+  const currentPlayer = nimState.moves.length % 2 === 0 ? nimState.player1 : nimState.player2;
+
+  const isMyTurn = user.username === currentPlayer;
 
   return (
     <>
@@ -36,17 +49,31 @@ const NimGamePage = ({ gameState }: { gameState: GameInstance }) => {
           - Remaining Objects: The number of objects remaining in the pile.
           - Winner: The winner of the game, or "No winner" if the winner is not defined. (Conditionally rendered)
         */}
+        <p>Player 1: {nimState.player1 || 'Waiting...'}</p>
+        <p>Player 2: {nimState.player2 || 'Waiting...'}</p>
+        <p>Current Player to Move: {currentPlayer || 'N/A'}</p>
+        <p>Remaining Objects: {nimState.remainingObjects}</p>
+        {nimState.winners && nimState.winners.length > 0 && <p>Winner: {nimState.winners[0]}</p>}
         {/* TODO: Task 2 - Conditionally render game move input for an in progress game */}
-        {
+        {nimState.status === 'IN_PROGRESS' && (
           <div className='nim-game-move'>
             <h3>Make Your Move</h3>
             {/* TODO: Task 2 - Implement the input field which takes a number input.
             Use the class name 'input-move' for styling. */}
+            <input
+              type='number'
+              className='input-move'
+              value={move ?? ''}
+              onChange={handleInputChange}
+            />
             {/* TODO: Task 2 - Implement the submit button which submits the entered move.
             The button should be disabled if it is not the user's turn.
             Use the class name 'btn-submit' for styling. */}
+            <button className='btn-submit' onClick={handleMakeMove} disabled={!isMyTurn}>
+              Submit
+            </button>
           </div>
-        }
+        )}
       </div>
     </>
   );

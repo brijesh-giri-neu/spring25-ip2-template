@@ -320,3 +320,15 @@ export interface ClientToServerEvents {
   joinChat: (chatID: string) => void;
   leaveChat: (chatID: string | undefined) => void;
 }
+
+/**
+ * Interface representing the state of a Nim game.
+ * @property moves - The list of moves made in the game.
+ * @property player1 - The ID of the first player.
+ * @property player2 - The ID of the second player.
+ */
+export interface NimGameState extends GameState {
+  moves: ReadonlyArray<NimMove>;
+  player1?: string;
+  player2?: string;
+}
