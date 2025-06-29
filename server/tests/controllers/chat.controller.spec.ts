@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import supertest from 'supertest';
 import { app } from '../../app';
 import * as chatService from '../../services/chat.service';
+import chatController from '../../controllers/chat.controller';
 import * as databaseUtil from '../../utils/database.util';
 import MessageModel from '../../models/messages.model';
 import ChatModel from '../../models/chat.model';
@@ -474,6 +475,61 @@ describe('Chat Controller', () => {
       const response = await supertest(app).get(`/chat/getChatsByUser/${username}`);
       expect(response.status).toBe(500);
       expect(response.text).toBe('Database error');
+    });
+  });
+
+  describe('Socket Events', () => {
+    let socket: any;
+    let conn: any;
+
+    beforeEach(() => {
+      // Mock the connection object
+      conn = {
+        on: jest.fn(),
+        join: jest.fn(),
+        leave: jest.fn(),
+      };
+
+      // Mock the socket object
+      socket = {
+        on: jest.fn((event, cb) => {
+          if (event === 'connection') {
+            cb(conn);
+          }
+        }),
+      };
+
+      // Initialize the controller with the mock socket
+      chatController(socket);
+    });
+
+    it('should handle joinChat event and join room', () => {
+      const chatId = 'room123';
+      // Get the handler for 'joinChat'
+      const joinChatHandler = conn.on.mock.calls.find(
+        (call: [string, Function]) => call[0] === 'joinChat',
+      )[1];
+      joinChatHandler(chatId);
+      expect(conn.join).toHaveBeenCalledWith(chatId);
+    });
+
+    it('should handle leaveChat event and leave room', () => {
+      const chatId = 'room123';
+      // Get the handler for 'leaveChat'
+      const leaveChatHandler = conn.on.mock.calls.find(
+        (call: [string, Function]) => call[0] === 'leaveChat',
+      )[1];
+      leaveChatHandler(chatId);
+      expect(conn.leave).toHaveBeenCalledWith(chatId);
+    });
+
+    it('should not leave room if chatId is not provided', () => {
+      // Get the handler for 'leaveChat'
+      const leaveChatHandler = conn.on.mock.calls.find(
+        (call: [string, Function]) => call[0] === 'leaveChat',
+      )[1];
+      leaveChatHandler(undefined);
+      expect(conn.leave).not.toHaveBeenCalled();
     });
   });
 });
