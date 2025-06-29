@@ -14,8 +14,11 @@ import {
   AddParticipantRequest,
   ChatIdRequest,
   GetChatByParticipantsRequest,
+  Chat,
 } from '../types/chat';
 import { FakeSOSocket } from '../types/socket';
+import { Message } from '../types/message';
+import { getUserByUsername } from '../services/user.service';
 
 /*
  * This controller handles chat-related routes.
@@ -63,7 +66,24 @@ const chatController = (socket: FakeSOSocket) => {
   const createChatRoute = async (req: CreateChatRequest, res: Response): Promise<void> => {
     // TODO: Task 3 - Implement the createChatRoute function
     // Emit a `chatUpdate` event to share the creation of a new chat
-    res.status(501).send('Not implemented');
+    if (!isCreateChatRequestValid(req)) {
+      res.status(400).send('Invalid request body');
+      return;
+    }
+    try {
+      const savedChat = await saveChat(req.body);
+      if ('error' in savedChat) {
+        throw new Error(savedChat.error);
+      }
+      const populatedChat = await populateDocument(savedChat._id!.toString(), 'chat');
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+      socket.emit('chatUpdate', { chat: populatedChat, type: 'created' });
+      res.status(200).json(populatedChat);
+    } catch (error) {
+      res.status(500).send((error as Error).message);
+    }
   };
 
   /**
@@ -81,7 +101,34 @@ const chatController = (socket: FakeSOSocket) => {
     // Emit a `chatUpdate` event to share the updated chat, specifically to
     // the chat room where the message was added (hint: look into socket rooms)
     // NOTE: Make sure to define the message type to be a direct message when creating it.
-    res.status(501).send('Not implemented');
+    if (!isAddMessageRequestValid(req)) {
+      res.status(400).send('Invalid request body');
+      return;
+    }
+    try {
+      const { chatId } = req.params;
+      const messagePayload: Message = {
+        ...req.body,
+        type: 'direct' as const,
+        msgDateTime: req.body.msgDateTime || new Date(),
+      };
+      const newMessage = await createMessage(messagePayload);
+      if ('error' in newMessage) {
+        throw new Error(newMessage.error);
+      }
+      const updatedChat = await addMessageToChat(chatId, newMessage._id!.toString());
+      if ('error' in updatedChat) {
+        throw new Error(updatedChat.error);
+      }
+      const populatedChat = await populateDocument(chatId, 'chat');
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+      socket.to(chatId).emit('chatUpdate', { chat: populatedChat, type: 'newMessage' });
+      res.status(200).json(populatedChat);
+    } catch (error) {
+      res.status(500).send((error as Error).message);
+    }
   };
 
   /**
@@ -93,7 +140,20 @@ const chatController = (socket: FakeSOSocket) => {
    */
   const getChatRoute = async (req: ChatIdRequest, res: Response): Promise<void> => {
     // TODO: Task 3 - Implement the getChatRoute function
-    res.status(501).send('Not implemented');
+    try {
+      const { chatId } = req.params;
+      const chat = await getChat(chatId);
+      if ('error' in chat) {
+        throw new Error(chat.error);
+      }
+      const populatedChat = await populateDocument(chatId, 'chat');
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+      res.status(200).json(populatedChat);
+    } catch (error) {
+      res.status(500).send((error as Error).message);
+    }
   };
 
   /**
@@ -107,7 +167,22 @@ const chatController = (socket: FakeSOSocket) => {
     res: Response,
   ): Promise<void> => {
     // TODO: Task 3 - Implement the getChatsByUserRoute function
-    res.status(501).send('Not implemented');
+    try {
+      const { username } = req.params;
+      const chats = await getChatsByParticipants([username]);
+      const populatedChats = await Promise.all(
+        chats.map(async (chat: Chat) => {
+          const populated = await populateDocument(chat._id!.toString(), 'chat');
+          if ('error' in populated) {
+            throw new Error(`Failed to populate chat ${chat._id!}: ${populated.error}`);
+          }
+          return populated;
+        }),
+      );
+      res.status(200).json(populatedChats);
+    } catch (error) {
+      res.status(500).send((error as Error).message);
+    }
   };
 
   /**
@@ -122,7 +197,26 @@ const chatController = (socket: FakeSOSocket) => {
     res: Response,
   ): Promise<void> => {
     // TODO: Task 3 - Implement the addParticipantToChatRoute function
-    res.status(501).send('Not implemented');
+    if (!isAddParticipantRequestValid(req)) {
+      res.status(400).send('Invalid request body');
+      return;
+    }
+    try {
+      const { chatId } = req.params;
+      const { username } = req.body;
+      const user = await getUserByUsername(username);
+      if (!user || 'error' in user) {
+        res.status(404).send('User not found');
+        return;
+      }
+      const updatedChat = await addParticipantToChat(chatId, user._id!.toString());
+      if ('error' in updatedChat) {
+        throw new Error(updatedChat.error);
+      }
+      res.status(200).json(updatedChat);
+    } catch (error) {
+      res.status(500).send((error as Error).message);
+    }
   };
 
   socket.on('connection', conn => {
@@ -142,6 +236,11 @@ const chatController = (socket: FakeSOSocket) => {
 
   // Register the routes
   // TODO: Task 3 - Add appropriate HTTP verbs and endpoints to the router
+  router.post('/', createChatRoute);
+  router.get('/:chatId', getChatRoute);
+  router.post('/:chatId/messages', addMessageToChatRoute);
+  router.get('/user/:username', getChatsByUserRoute);
+  router.post('/:chatId/participants', addParticipantToChatRoute);
 
   return router;
 };
