@@ -24,7 +24,7 @@ export const saveChat = async (chatPayload: CreateChatPayload): Promise<ChatResp
       participants: chatPayload.participants,
       messages: messageIds,
     });
-    return newChat;
+    return newChat.toObject();
   } catch (error) {
     return { error: `Error creating chat: ${error}` };
   }
@@ -39,7 +39,7 @@ export const createMessage = async (messageData: Message): Promise<MessageRespon
   // TODO: Task 3 - Implement the createMessage function. Refer to other service files for guidance.
   try {
     const newMessage = await MessageModel.create(messageData);
-    return newMessage;
+    return newMessage.toObject();
   } catch (error) {
     return { error: `Error creating message: ${error}` };
   }
@@ -62,7 +62,7 @@ export const addMessageToChat = async (chatId: string, messageId: string): Promi
     if (!chat) {
       return { error: 'Chat not found' };
     }
-    return chat;
+    return chat.toObject();
   } catch (error) {
     return { error: `Error adding message to chat: ${error}` };
   }
@@ -80,7 +80,7 @@ export const getChat = async (chatId: string): Promise<ChatResponse> => {
     if (!chat) {
       return { error: 'Chat not found' };
     }
-    return chat;
+    return chat.toObject();
   } catch (error) {
     return { error: `Error getting chat: ${error}` };
   }
@@ -95,7 +95,11 @@ export const getChat = async (chatId: string): Promise<ChatResponse> => {
 export const getChatsByParticipants = async (p: string[]): Promise<Chat[]> => {
   // TODO: Task 3 - Implement the getChatsByParticipants function. Refer to other service files for guidance.
   try {
-    return await ChatModel.find({ participants: { $all: p } });
+    const chats = await ChatModel.find({ participants: { $all: p } });
+    if (!chats) {
+      return [];
+    }
+    return chats.map(chat => chat.toObject());
   } catch (error) {
     console.error(`Error getting chats by participants: ${error}`);
     return [];
@@ -120,7 +124,7 @@ export const addParticipantToChat = async (chatId: string, userId: string): Prom
     if (!chat) {
       return { error: 'Chat not found' };
     }
-    return chat;
+    return chat.toObject();
   } catch (error) {
     return { error: `Error adding participant to chat: ${error}` };
   }
