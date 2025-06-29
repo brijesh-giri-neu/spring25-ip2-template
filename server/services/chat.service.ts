@@ -1,6 +1,5 @@
 import ChatModel from '../models/chat.model';
 import MessageModel from '../models/messages.model';
-import UserModel from '../models/users.model';
 import { Chat, ChatResponse, CreateChatPayload } from '../types/chat';
 import { Message, MessageResponse } from '../types/message';
 
@@ -104,7 +103,6 @@ export const getChatsByParticipants = async (p: string[]): Promise<Chat[]> => {
     }
     return chats.map(chat => chat.toObject());
   } catch (error) {
-    console.info(`Error getting chats by participants: ${error}`);
     return [];
   }
 };

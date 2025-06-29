@@ -14,11 +14,9 @@ import {
   AddParticipantRequest,
   ChatIdRequest,
   GetChatByParticipantsRequest,
-  Chat,
 } from '../types/chat';
 import { FakeSOSocket } from '../types/socket';
 import { Message } from '../types/message';
-import { getUserByUsername } from '../services/user.service';
 
 /*
  * This controller handles chat-related routes.
