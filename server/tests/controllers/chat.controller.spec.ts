@@ -89,6 +89,41 @@ describe('Chat Controller', () => {
       expect(populateDocumentSpy).toHaveBeenCalledWith(chatResponse._id?.toString(), 'chat');
     });
 
+    it('should return 400 for an invalid payload', async () => {
+      const response = await supertest(app).post('/chat/createChat').send({ messages: [] }); // Missing participants
+      expect(response.status).toBe(400);
+      expect(response.text).toBe('Invalid request body');
+    });
+
+    it('should return 500 if saveChat fails', async () => {
+      const validChatPayload = {
+        participants: ['user1', 'user2'],
+        messages: [{ msg: 'Hello!', msgFrom: 'user1', msgDateTime: new Date('2025-01-01') }],
+      };
+      saveChatSpy.mockResolvedValue({ error: 'DB error' });
+      const response = await supertest(app).post('/chat/createChat').send(validChatPayload);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('DB error');
+    });
+
+    it('should return 500 if populateDocument fails', async () => {
+      const validChatPayload = {
+        participants: ['user1', 'user2'],
+        messages: [{ msg: 'Hello!', msgFrom: 'user1', msgDateTime: new Date('2025-01-01') }],
+      };
+      const chatResponse: Chat = {
+        _id: new mongoose.Types.ObjectId(),
+        participants: ['user1', 'user2'],
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      saveChatSpy.mockResolvedValue(chatResponse);
+      populateDocumentSpy.mockResolvedValue({ error: 'Population failed' });
+      const response = await supertest(app).post('/chat/createChat').send(validChatPayload);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Population failed');
+    });
   });
 
   describe('POST /chat/:chatId/addMessage', () => {
@@ -152,6 +187,42 @@ describe('Chat Controller', () => {
       expect(populateDocumentSpy).toHaveBeenCalledWith(chatResponse._id.toString(), 'chat');
     });
 
+    it('should return 400 for an invalid message payload', async () => {
+      const chatId = new mongoose.Types.ObjectId();
+      const response = await supertest(app).post(`/chat/${chatId}/addMessage`).send({ msgFrom: 'user1' }); // Missing msg
+      expect(response.status).toBe(400);
+      expect(response.text).toBe('Invalid request body');
+    });
+
+    it('should return 500 if createMessage fails', async () => {
+      const chatId = new mongoose.Types.ObjectId();
+      const messagePayload = {
+        msg: 'Hello!',
+        msgFrom: 'user1',
+        msgDateTime: new Date('2025-01-01'),
+        type: 'direct',
+      };
+      createMessageSpy.mockResolvedValue({ error: 'Create message failed' });
+      const response = await supertest(app).post(`/chat/${chatId}/addMessage`).send(messagePayload);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Create message failed');
+    });
+
+    it('should return 500 if addMessageToChat fails', async () => {
+      const chatId = new mongoose.Types.ObjectId();
+      const messagePayload = {
+        msg: 'Hello!',
+        msgFrom: 'user1',
+        msgDateTime: new Date('2025-01-01'),
+        type: 'direct',
+      };
+      const messageResponse = { _id: new mongoose.Types.ObjectId(), ...messagePayload };
+      createMessageSpy.mockResolvedValue(messageResponse as Message);
+      addMessageSpy.mockResolvedValue({ error: 'Add message failed' });
+      const response = await supertest(app).post(`/chat/${chatId}/addMessage`).send(messagePayload);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Add message failed');
+    });
   });
 
   describe('GET /chat/:chatId', () => {
@@ -211,6 +282,14 @@ describe('Chat Controller', () => {
         updatedAt: mockFoundChat.updatedAt?.toISOString(),
       });
     });
+
+    it('should return 500 if getChat fails', async () => {
+      const chatId = new mongoose.Types.ObjectId().toString();
+      getChatSpy.mockResolvedValue({ error: 'Chat not found' });
+      const response = await supertest(app).get(`/chat/${chatId}`);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Chat not found');
+    });
   });
 
   describe('POST /chat/:chatId/addParticipant', () => {
@@ -246,9 +325,24 @@ describe('Chat Controller', () => {
       expect(populateDocumentSpy).toHaveBeenCalledWith(updatedChat._id?.toString(), 'chat');
     });
 
+    it('should return 400 for an invalid payload', async () => {
+      const chatId = new mongoose.Types.ObjectId().toString();
+      const response = await supertest(app).post(`/chat/${chatId}/addParticipant`).send({}); // Missing userId
+      expect(response.status).toBe(400);
+      expect(response.text).toBe('Invalid request body');
+    });
+
+    it('should return 500 if addParticipantToChat fails', async () => {
+      const chatId = new mongoose.Types.ObjectId().toString();
+      const userId = new mongoose.Types.ObjectId().toString();
+      addParticipantSpy.mockResolvedValue({ error: 'Failed to add participant' });
+      const response = await supertest(app).post(`/chat/${chatId}/addParticipant`).send({ userId });
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Failed to add participant');
+    });
   });
 
-  describe('POST /chat/getChatsByUser/:username', () => {
+  describe('GET /chat/getChatsByUser/:username', () => {
     it('should return 200 with an array of chats', async () => {
       const username = 'user1';
       const chats: Chat[] = [
@@ -299,6 +393,26 @@ describe('Chat Controller', () => {
       expect(populateDocumentSpy).toHaveBeenCalledWith(chats[0]._id?.toString(), 'chat');
       expect(response.status).toBe(500);
       expect(response.text).toBe('Error retrieving chat: Failed populating chats');
+    });
+
+    it('should return 200 with an empty array if no chats are found', async () => {
+      const username = 'user-with-no-chats';
+      getChatsByParticipantsSpy.mockResolvedValueOnce([]);
+
+      const response = await supertest(app).get(`/chat/getChatsByUser/${username}`);
+
+      expect(getChatsByParticipantsSpy).toHaveBeenCalledWith([username]);
+      expect(populateDocumentSpy).not.toHaveBeenCalled();
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    it('should return 500 if the service throws an error', async () => {
+      const username = 'user1';
+      getChatsByParticipantsSpy.mockRejectedValue(new Error('Database error'));
+      const response = await supertest(app).get(`/chat/getChatsByUser/${username}`);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Database error');
     });
   });
 });
