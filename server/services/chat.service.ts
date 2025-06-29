@@ -101,7 +101,7 @@ export const getChatsByParticipants = async (p: string[]): Promise<Chat[]> => {
     }
     return chats.map(chat => chat.toObject());
   } catch (error) {
-    console.error(`Error getting chats by participants: ${error}`);
+    console.info(`Error getting chats by participants: ${error}`);
     return [];
   }
 };
