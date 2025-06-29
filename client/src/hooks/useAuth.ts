@@ -34,6 +34,7 @@ const useAuth = (authType: 'login' | 'signup') => {
    */
   const togglePasswordVisibility = () => {
     // TODO - Task 1: Toggle password visibility
+    setShowPassword(!showPassword);
   };
 
   /**
@@ -47,6 +48,14 @@ const useAuth = (authType: 'login' | 'signup') => {
     field: 'username' | 'password' | 'confirmPassword',
   ) => {
     // TODO - Task 1: Handle input changes for the fields
+    const { value } = e.target;
+    if (field === 'username') {
+      setUsername(value);
+    } else if (field === 'password') {
+      setPassword(value);
+    } else if (field === 'confirmPassword') {
+      setPasswordConfirmation(value);
+    }
   };
 
   /**
@@ -58,6 +67,19 @@ const useAuth = (authType: 'login' | 'signup') => {
   const validateInputs = (): boolean => {
     // TODO - Task 1: Validate inputs for login and signup forms
     // Display any errors to the user
+    if (!username || !password) {
+      setErr('Username or password cannot be empty');
+      return false;
+    }
+
+    if (authType === 'signup') {
+      if (password !== passwordConfirmation) {
+        setErr('Passwords do not match');
+        return false;
+      }
+    }
+
+    return true;
   };
 
   /**
@@ -70,18 +92,31 @@ const useAuth = (authType: 'login' | 'signup') => {
     event.preventDefault();
 
     // TODO - Task 1: Validate inputs
+    if (!validateInputs()) {
+      return;
+    }
 
     let user: User;
 
     try {
       // TODO - Task 1: Handle the form submission, calling appropriate API routes
       // based on the auth type
+      if (authType === 'login') {
+        user = await loginUser({ username, password });
+      } else {
+        user = await createUser({ username, password });
+      }
 
       // Redirect to home page on successful login/signup
       setUser(user);
       navigate('/home');
     } catch (error) {
       // TODO - Task 1: Display error message
+      if (error instanceof Error) {
+        setErr(error.message);
+      } else {
+        setErr('An unknown error occurred.');
+      }
     }
   };
 

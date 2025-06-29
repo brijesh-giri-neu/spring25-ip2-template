@@ -1,3 +1,4 @@
+import { HydratedDocument } from 'mongoose';
 import UserModel from '../../models/users.model';
 import {
   deleteUserByUsername,
@@ -21,6 +22,7 @@ describe('User model', () => {
   describe('saveUser', () => {
     beforeEach(() => {
       mockingoose.resetAll();
+      jest.restoreAllMocks();
     });
 
     it('should return the saved user', async () => {
@@ -41,6 +43,30 @@ describe('User model', () => {
       const saveError = await saveUser(user);
 
       expect('error' in saveError).toBe(true);
+    });
+
+    it('should return an error if user creation fails', async () => {
+      jest.spyOn(UserModel, 'create').mockRejectedValue(new Error('Creation failed'));
+      const result = await saveUser(user);
+      expect('error' in result).toBe(true);
+      if ('error' in result) {
+        expect(result.error).toContain('Error occurred when saving user');
+      }
+    });
+
+    it('should return an error if user creation returns a falsy value', async () => {
+      const createMock = jest.spyOn(UserModel, 'create') as unknown as jest.Mock<
+        Promise<HydratedDocument<User> | null>,
+        [User]
+      >;
+      createMock.mockResolvedValue(null);
+
+      const result = await saveUser(user);
+
+      expect('error' in result).toBe(true);
+      if ('error' in result) {
+        expect(result.error).toContain('Failed to create user');
+      }
     });
   });
 });
@@ -91,6 +117,21 @@ describe('getUsersList', () => {
   });
 
   // TODO: Task 1 - Add more tests for getUsersList
+  it('should return an empty array if no users are found', async () => {
+    mockingoose(UserModel).toReturn([], 'find');
+
+    const retrievedUsers = (await getUsersList()) as SafeUser[];
+
+    expect(retrievedUsers).toEqual([]);
+  });
+
+  it('should return an error if a database error occurs', async () => {
+    mockingoose(UserModel).toReturn(new Error('Error finding documents'), 'find');
+
+    const retrievedUsers = await getUsersList();
+
+    expect('error' in retrievedUsers).toBe(true);
+  });
 });
 
 describe('loginUser', () => {
@@ -135,6 +176,16 @@ describe('loginUser', () => {
 
     const loginError = await loginUser(credentials);
 
+    expect('error' in loginError).toBe(true);
+  });
+
+  it('should return an error if a database error occurs', async () => {
+    mockingoose(UserModel).toReturn(new Error('Database error'), 'findOne');
+    const credentials: UserCredentials = {
+      username: user.username,
+      password: user.password,
+    };
+    const loginError = await loginUser(credentials);
     expect('error' in loginError).toBe(true);
   });
 });
@@ -242,6 +293,12 @@ describe('updateUser', () => {
     const biographyUpdates: Partial<User> = { biography: newBio };
     const updatedError = await updateUser(user.username, biographyUpdates);
 
+    expect('error' in updatedError).toBe(true);
+  });
+
+  it('should return an error if a database error occurs on update', async () => {
+    mockingoose(UserModel).toReturn(new Error('Database error'), 'findOneAndUpdate');
+    const updatedError = await updateUser(user.username, {});
     expect('error' in updatedError).toBe(true);
   });
 });

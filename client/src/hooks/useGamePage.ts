@@ -20,11 +20,32 @@ const useGamePage = () => {
   // - `gameState` to store the current game state or null if no game is joined.
   // - `joinedGameID` to store the ID of the joined game.
   // - `error` to display any error messages related to the game, or null if no error message.
+  const [gameState, setGameState] = useState<GameInstance | null>(null);
+  const [joinedGameID, setJoinedGameID] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Sets the error message state based on the provided error.
+   *
+   * @param err The error object caught.
+   * @param defaultMessage The default message to display if the error is not an instance of Error.
+   */
+  const handleError = (err: unknown, defaultMessage: string) => {
+    setError(err instanceof Error ? err.message : defaultMessage);
+  };
 
   const handleLeaveGame = async () => {
     // TODO: Task 2 - Implement the logic to leave the current game.
     // - If a game is joined and not over, make the appropriate API call to leave the game, and
     // emit a 'leaveGame' event to the server using the socket.
+    if (joinedGameID && user.username && gameState?.state.status !== 'OVER') {
+      try {
+        await leaveGame(joinedGameID, user.username);
+        socket.emit('leaveGame', joinedGameID);
+      } catch (err) {
+        handleError(err, 'An unknown error occurred while leaving the game.');
+      }
+    }
 
     // Always navigate back to the games page
     navigate('/games');
@@ -35,6 +56,18 @@ const useGamePage = () => {
       // TODO: Task 2 - Implement the logic to join the game with the provided ID,
       // making an API call, emitting a 'joinGame' event to the server using the socket,
       // and setting apporoiate state variables.
+      if (user.username) {
+        try {
+          const newGameState = await joinGame(id, user.username);
+          setGameState(newGameState);
+          setJoinedGameID(id);
+          socket.emit('joinGame', id);
+          setError(null);
+        } catch (err) {
+          handleError(err, 'An unknown error occurred while joining the game.');
+          navigate('/games');
+        }
+      }
     };
 
     if (gameID) {
@@ -43,18 +76,26 @@ const useGamePage = () => {
 
     const handleGameUpdate = (updatedState: GameUpdatePayload) => {
       // TODO: Task 2 - Update the game state based on the received update
+      setGameState(updatedState.gameState);
     };
 
     const handleGameError = (gameError: GameErrorPayload) => {
       // TODO: Task 2 - Display the error if this user caused the error
+      if (gameError.player === user.username) {
+        setError(gameError.error);
+      }
     };
 
     // TODO: Task 2 - Register socket listeners for 'gameUpdate' and 'gameError' events
+    socket.on('gameUpdate', handleGameUpdate);
+    socket.on('gameError', handleGameError);
 
     return () => {
       // TODO: Task 2 -  Unsubscribe from the socket event on cleanup
+      socket.off('gameUpdate', handleGameUpdate);
+      socket.off('gameError', handleGameError);
     };
-  }, [gameID, socket, user.username]);
+  }, [gameID, socket, user.username, navigate]);
 
   return {
     gameState,

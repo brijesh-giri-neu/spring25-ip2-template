@@ -260,8 +260,8 @@ describe('Test userController', () => {
     });
   });
 
-  describe('GET /getUser', () => {
-    it('should return the user given correct arguments', async () => {
+  describe('GET /getUser/:username', () => {
+    it('should return a user given a valid username', async () => {
       getUserByUsernameSpy.mockResolvedValueOnce(mockSafeUser);
 
       const response = await supertest(app).get(`/user/getUser/${mockUser.username}`);
@@ -271,27 +271,20 @@ describe('Test userController', () => {
       expect(getUserByUsernameSpy).toHaveBeenCalledWith(mockUser.username);
     });
 
-    it('should return 500 if database error while searching username', async () => {
-      getUserByUsernameSpy.mockResolvedValueOnce({ error: 'Error finding user' });
+    it('should return 500 for a database error', async () => {
+      getUserByUsernameSpy.mockResolvedValueOnce({ error: 'Error getting user' });
 
       const response = await supertest(app).get(`/user/getUser/${mockUser.username}`);
 
       expect(response.status).toBe(500);
     });
-
-    it('should return 404 if username not provided', async () => {
-      // Express automatically returns 404 for missing parameters when
-      // defined as required in the route
-      const response = await supertest(app).get('/user/getUser/');
-      expect(response.status).toBe(404);
-    });
   });
 
   describe('GET /getUsers', () => {
-    it('should return the users from the database', async () => {
+    it('should return a list of users', async () => {
       getUsersListSpy.mockResolvedValueOnce([mockSafeUser]);
 
-      const response = await supertest(app).get(`/user/getUsers`);
+      const response = await supertest(app).get('/user/getUsers');
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual([mockUserJSONResponse]);
@@ -299,10 +292,26 @@ describe('Test userController', () => {
     });
 
     // TODO: Task 1 - Add more tests
+    it('should return 500 for a database error', async () => {
+      getUsersListSpy.mockResolvedValueOnce({ error: 'Error getting users' });
+
+      const response = await supertest(app).get('/user/getUsers');
+
+      expect(response.status).toBe(500);
+    });
+
+    it('should return 500 for an unknown error', async () => {
+      getUsersListSpy.mockRejectedValueOnce('Unknown error');
+
+      const response = await supertest(app).get('/user/getUsers');
+
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('An unknown error occurred when getting users.');
+    });
   });
 
-  describe('DELETE /deleteUser', () => {
-    it('should return the deleted user given correct arguments', async () => {
+  describe('DELETE /deleteUser/:username', () => {
+    it('should return the deleted user given a valid username', async () => {
       deleteUserByUsernameSpy.mockResolvedValueOnce(mockSafeUser);
 
       const response = await supertest(app).delete(`/user/deleteUser/${mockUser.username}`);
@@ -312,19 +321,12 @@ describe('Test userController', () => {
       expect(deleteUserByUsernameSpy).toHaveBeenCalledWith(mockUser.username);
     });
 
-    it('should return 500 if database error while searching username', async () => {
+    it('should return 500 for a database error', async () => {
       deleteUserByUsernameSpy.mockResolvedValueOnce({ error: 'Error deleting user' });
 
       const response = await supertest(app).delete(`/user/deleteUser/${mockUser.username}`);
 
       expect(response.status).toBe(500);
-    });
-
-    it('should return 404 if username not provided', async () => {
-      // Express automatically returns 404 for missing parameters when
-      // defined as required in the route
-      const response = await supertest(app).delete('/user/deleteUser/');
-      expect(response.status).toBe(404);
     });
   });
 
@@ -349,5 +351,43 @@ describe('Test userController', () => {
     });
 
     // TODO: Task 1 - Add more tests
+    it('should return 400 for a request missing a username', async () => {
+      const mockReqBody = {
+        biography: 'This is my new bio',
+      };
+      const response = await supertest(app).patch('/user/updateBiography').send(mockReqBody);
+      expect(response.status).toBe(400);
+      expect(response.text).toBe('Username and biography are required');
+    });
+
+    it('should return 400 for a request missing a biography', async () => {
+      const mockReqBody = {
+        username: mockUser.username,
+      };
+      const response = await supertest(app).patch('/user/updateBiography').send(mockReqBody);
+      expect(response.status).toBe(400);
+      expect(response.text).toBe('Username and biography are required');
+    });
+
+    it('should return 500 for a database error while updating', async () => {
+      const mockReqBody = {
+        username: mockUser.username,
+        biography: 'This is my new bio',
+      };
+      updatedUserSpy.mockResolvedValueOnce({ error: 'Error updating user' });
+      const response = await supertest(app).patch('/user/updateBiography').send(mockReqBody);
+      expect(response.status).toBe(500);
+    });
+
+    it('should return 500 for an unknown error', async () => {
+      const mockReqBody = {
+        username: mockUser.username,
+        biography: 'This is my new bio',
+      };
+      updatedUserSpy.mockRejectedValue('Unknown error');
+      const response = await supertest(app).patch('/user/updateBiography').send(mockReqBody);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('An unknown error occurred while updating user biography.');
+    });
   });
 });

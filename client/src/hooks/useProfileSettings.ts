@@ -37,7 +37,7 @@ const useProfileSettings = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // TODO: Task 1 - Determine if the current user can edit the profile being viewed
-  const canEditProfile = false; // Replace false with the correct condition
+  const canEditProfile = currentUser?.username === username; // Replace false with the correct condition
 
   useEffect(() => {
     if (!username) return;
@@ -59,10 +59,27 @@ const useProfileSettings = () => {
   }, [username]);
 
   /**
+   * Sets the error message state based on the provided error.
+   * Clears any existing success messages.
+   *
+   * @param error The error object caught.
+   * @param defaultMessage The default message to display if the error is not an instance of Error.
+   */
+  const handleError = (error: unknown, defaultMessage: string) => {
+    setSuccessMessage(null);
+    if (error instanceof Error) {
+      setErrorMessage(error.message);
+    } else {
+      setErrorMessage(defaultMessage);
+    }
+  };
+
+  /**
    * Toggles the visibility of the password fields.
    */
   const togglePasswordVisibility = () => {
     // TODO: Task 1 - Toggle the password visibility.
+    setShowPassword(!showPassword);
   };
 
   /**
@@ -70,17 +87,36 @@ const useProfileSettings = () => {
    */
   const validatePasswords = () => {
     // TODO: Task 1 - Validate the reset password fields and return whether they match
+    if (!newPassword || !confirmNewPassword) {
+      setErrorMessage('Password fields cannot be empty.');
+      return false;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setErrorMessage('Passwords do not match.');
+      return false;
+    }
+    setErrorMessage(null);
+    return true;
   };
 
   /**
    * Handler for resetting the password
    */
   const handleResetPassword = async () => {
-    if (!username) return;
+    if (!username || !validatePasswords()) return;
 
     // TODO: Task 1 - Implement the password reset functionality.
     // Validate the password fields, then call the resetPassword service.
     // Display success or error messages accordingly, and clear the password fields.
+    try {
+      await resetPassword(username, newPassword);
+      setSuccessMessage('Password reset successfully.');
+      setErrorMessage(null);
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error) {
+      handleError(error, 'An unknown error occurred while resetting password.');
+    }
   };
 
   const handleUpdateBiography = async () => {
@@ -89,6 +125,15 @@ const useProfileSettings = () => {
     // TODO: Task 1 - Implement the biography update functionality.
     // Call the updateBiography service, set the updated user,
     // then display success or error messages.
+    try {
+      const updatedUser = await updateBiography(username, newBio);
+      setUserData(updatedUser);
+      setEditBioMode(false);
+      setSuccessMessage('Biography updated successfully.');
+      setErrorMessage(null);
+    } catch (error) {
+      handleError(error, 'An unknown error occurred while updating biography.');
+    }
   };
 
   /**
@@ -104,9 +149,12 @@ const useProfileSettings = () => {
       // displating success or error messages accordingly.
 
       try {
+        await deleteUser(username);
+        setSuccessMessage('User deleted successfully');
         // Navigate home after successful deletion
         navigate('/');
       } catch (error) {
+        handleError(error, 'An unknown error occurred while deleting the user.');
         // Error handling
       } finally {
         // Hide the confirmation modal after completion
