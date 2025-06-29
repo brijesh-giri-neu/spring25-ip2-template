@@ -1,3 +1,4 @@
+import { HydratedDocument } from 'mongoose';
 import UserModel from '../../models/users.model';
 import {
   deleteUserByUsername,
@@ -50,6 +51,21 @@ describe('User model', () => {
       expect('error' in result).toBe(true);
       if ('error' in result) {
         expect(result.error).toContain('Error occurred when saving user');
+      }
+    });
+
+    it('should return an error if user creation returns a falsy value', async () => {
+      const createMock = jest.spyOn(UserModel, 'create') as unknown as jest.Mock<
+        Promise<HydratedDocument<User> | null>,
+        [User]
+      >;
+      createMock.mockResolvedValue(null);
+
+      const result = await saveUser(user);
+
+      expect('error' in result).toBe(true);
+      if ('error' in result) {
+        expect(result.error).toContain('Failed to create user');
       }
     });
   });
