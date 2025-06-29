@@ -128,8 +128,16 @@ const chatController = (socket: FakeSOSocket) => {
   socket.on('connection', conn => {
     // TODO: Task 3 - Implement the `joinChat` event listener on `conn`
     // The socket room will be defined to have the chat ID as the room name
+    conn.on('joinChat', chatId => {
+      conn.join(chatId);
+    });
     // TODO: Task 3 - Implement the `leaveChat` event listener on `conn`
     // You should only leave the chat if the chat ID is provided/defined
+    conn.on('leaveChat', chatId => {
+      if (chatId) {
+        conn.leave(chatId);
+      }
+    });
   });
 
   // Register the routes
