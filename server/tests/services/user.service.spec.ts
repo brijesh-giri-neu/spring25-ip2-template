@@ -21,6 +21,7 @@ describe('User model', () => {
   describe('saveUser', () => {
     beforeEach(() => {
       mockingoose.resetAll();
+      jest.restoreAllMocks();
     });
 
     it('should return the saved user', async () => {
@@ -44,11 +45,11 @@ describe('User model', () => {
     });
 
     it('should return an error if user creation fails', async () => {
-      jest.spyOn(UserModel, 'create').mockResolvedValue(null as any);
+      jest.spyOn(UserModel, 'create').mockRejectedValue(new Error('Creation failed'));
       const result = await saveUser(user);
       expect('error' in result).toBe(true);
       if ('error' in result) {
-        expect(result.error).toContain('Failed to create user');
+        expect(result.error).toContain('Error occurred when saving user');
       }
     });
   });
@@ -161,6 +162,16 @@ describe('loginUser', () => {
 
     expect('error' in loginError).toBe(true);
   });
+
+  it('should return an error if a database error occurs', async () => {
+    mockingoose(UserModel).toReturn(new Error('Database error'), 'findOne');
+    const credentials: UserCredentials = {
+      username: user.username,
+      password: user.password,
+    };
+    const loginError = await loginUser(credentials);
+    expect('error' in loginError).toBe(true);
+  });
 });
 
 describe('deleteUserByUsername', () => {
@@ -266,6 +277,12 @@ describe('updateUser', () => {
     const biographyUpdates: Partial<User> = { biography: newBio };
     const updatedError = await updateUser(user.username, biographyUpdates);
 
+    expect('error' in updatedError).toBe(true);
+  });
+
+  it('should return an error if a database error occurs on update', async () => {
+    mockingoose(UserModel).toReturn(new Error('Database error'), 'findOneAndUpdate');
+    const updatedError = await updateUser(user.username, {});
     expect('error' in updatedError).toBe(true);
   });
 });

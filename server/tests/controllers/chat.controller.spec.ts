@@ -6,6 +6,7 @@ import chatController from '../../controllers/chat.controller';
 import * as databaseUtil from '../../utils/database.util';
 import { Chat } from '../../types/chat';
 import { Message } from '../../types/message';
+import { FakeSOSocket } from '../../types/socket';
 
 /**
  * Spies on the service functions
@@ -17,7 +18,6 @@ const getChatSpy = jest.spyOn(chatService, 'getChat');
 const addParticipantSpy = jest.spyOn(chatService, 'addParticipantToChat');
 const populateDocumentSpy = jest.spyOn(databaseUtil, 'populateDocument');
 const getChatsByParticipantsSpy = jest.spyOn(chatService, 'getChatsByParticipants');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 
 /**
  * Sample test suite for the /chat endpoints
@@ -400,6 +400,15 @@ describe('Chat Controller', () => {
       expect(response.status).toBe(500);
       expect(response.text).toBe('Population failed');
     });
+
+    it('should return 500 if addParticipantToChat service throws an error', async () => {
+      const chatId = new mongoose.Types.ObjectId().toString();
+      const userId = new mongoose.Types.ObjectId().toString();
+      addParticipantSpy.mockRejectedValue(new Error('Service error'));
+      const response = await supertest(app).post(`/chat/${chatId}/addParticipant`).send({ userId });
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Service error');
+    });
   });
 
   describe('GET /chat/getChatsByUser/:username', () => {
@@ -477,8 +486,8 @@ describe('Chat Controller', () => {
   });
 
   describe('Socket Events', () => {
-    let socket: any;
-    let conn: any;
+    let socket: { on: jest.Mock };
+    let conn: { on: jest.Mock; join: jest.Mock; leave: jest.Mock };
 
     beforeEach(() => {
       // Mock the connection object
@@ -498,14 +507,14 @@ describe('Chat Controller', () => {
       };
 
       // Initialize the controller with the mock socket
-      chatController(socket);
+      chatController(socket as unknown as FakeSOSocket);
     });
 
     it('should handle joinChat event and join room', () => {
       const chatId = 'room123';
       // Get the handler for 'joinChat'
       const joinChatHandler = conn.on.mock.calls.find(
-        (call: [string, Function]) => call[0] === 'joinChat',
+        (call: [string, (...args: unknown[]) => void]) => call[0] === 'joinChat',
       )[1];
       joinChatHandler(chatId);
       expect(conn.join).toHaveBeenCalledWith(chatId);
@@ -515,7 +524,7 @@ describe('Chat Controller', () => {
       const chatId = 'room123';
       // Get the handler for 'leaveChat'
       const leaveChatHandler = conn.on.mock.calls.find(
-        (call: [string, Function]) => call[0] === 'leaveChat',
+        (call: [string, (...args: unknown[]) => void]) => call[0] === 'leaveChat',
       )[1];
       leaveChatHandler(chatId);
       expect(conn.leave).toHaveBeenCalledWith(chatId);
@@ -524,7 +533,7 @@ describe('Chat Controller', () => {
     it('should not leave room if chatId is not provided', () => {
       // Get the handler for 'leaveChat'
       const leaveChatHandler = conn.on.mock.calls.find(
-        (call: [string, Function]) => call[0] === 'leaveChat',
+        (call: [string, (...args: unknown[]) => void]) => call[0] === 'leaveChat',
       )[1];
       leaveChatHandler(undefined);
       expect(conn.leave).not.toHaveBeenCalled();
