@@ -236,11 +236,11 @@ const chatController = (socket: FakeSOSocket) => {
 
   // Register the routes
   // TODO: Task 3 - Add appropriate HTTP verbs and endpoints to the router
-  router.post('/', createChatRoute);
+  router.post('/createChat', createChatRoute);
   router.get('/:chatId', getChatRoute);
-  router.post('/:chatId/messages', addMessageToChatRoute);
-  router.get('/user/:username', getChatsByUserRoute);
-  router.post('/:chatId/participants', addParticipantToChatRoute);
+  router.post('/:chatId/addMessage', addMessageToChatRoute);
+  router.get('/getChatsByUser/:username', getChatsByUserRoute);
+  router.post('/:chatId/addParticipant', addParticipantToChatRoute);
 
   return router;
 };
