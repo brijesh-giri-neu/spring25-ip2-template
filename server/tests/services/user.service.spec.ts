@@ -42,6 +42,15 @@ describe('User model', () => {
 
       expect('error' in saveError).toBe(true);
     });
+
+    it('should return an error if user creation fails', async () => {
+      jest.spyOn(UserModel, 'create').mockResolvedValue(null as any);
+      const result = await saveUser(user);
+      expect('error' in result).toBe(true);
+      if ('error' in result) {
+        expect(result.error).toContain('Failed to create user');
+      }
+    });
   });
 });
 
@@ -91,6 +100,21 @@ describe('getUsersList', () => {
   });
 
   // TODO: Task 1 - Add more tests for getUsersList
+  it('should return an empty array if no users are found', async () => {
+    mockingoose(UserModel).toReturn([], 'find');
+
+    const retrievedUsers = (await getUsersList()) as SafeUser[];
+
+    expect(retrievedUsers).toEqual([]);
+  });
+
+  it('should return an error if a database error occurs', async () => {
+    mockingoose(UserModel).toReturn(new Error('Error finding documents'), 'find');
+
+    const retrievedUsers = await getUsersList();
+
+    expect('error' in retrievedUsers).toBe(true);
+  });
 });
 
 describe('loginUser', () => {
