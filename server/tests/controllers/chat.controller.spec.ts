@@ -190,7 +190,9 @@ describe('Chat Controller', () => {
 
     it('should return 400 for an invalid message payload', async () => {
       const chatId = new mongoose.Types.ObjectId();
-      const response = await supertest(app).post(`/chat/${chatId}/addMessage`).send({ msgFrom: 'user1' }); // Missing msg
+      const response = await supertest(app)
+        .post(`/chat/${chatId}/addMessage`)
+        .send({ msgFrom: 'user1' }); // Missing msg
       expect(response.status).toBe(400);
       expect(response.text).toBe('Invalid request body');
     });

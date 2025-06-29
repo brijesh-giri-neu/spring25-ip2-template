@@ -51,7 +51,10 @@ export const createMessage = async (messageData: Message): Promise<MessageRespon
  * @param messageId - The ID of the message to add to the chat.
  * @returns {Promise<ChatResponse>} - Resolves with the updated chat object or an error message.
  */
-export const addMessageToChat = async (chatId: string, messageId: string): Promise<ChatResponse> => {
+export const addMessageToChat = async (
+  chatId: string,
+  messageId: string,
+): Promise<ChatResponse> => {
   // TODO: Task 3 - Implement the addMessageToChat function. Refer to other service files for guidance.
   try {
     const chat = await ChatModel.findByIdAndUpdate(
@@ -113,7 +116,10 @@ export const getChatsByParticipants = async (p: string[]): Promise<Chat[]> => {
  * @param userId - The ID of the user to add to the chat.
  * @returns {Promise<ChatResponse>} - Resolves with the updated chat object or an error message.
  */
-export const addParticipantToChat = async (chatId: string, userId: string): Promise<ChatResponse> => {
+export const addParticipantToChat = async (
+  chatId: string,
+  userId: string,
+): Promise<ChatResponse> => {
   // TODO: Task 3 - Implement the addParticipantToChat function. Refer to other service files for guidance.
   try {
     const chat = await ChatModel.findByIdAndUpdate(
