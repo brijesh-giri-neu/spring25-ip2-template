@@ -223,6 +223,33 @@ describe('Chat Controller', () => {
       expect(response.status).toBe(500);
       expect(response.text).toBe('Add message failed');
     });
+
+    it('should return 500 if populateDocument fails', async () => {
+      const chatId = new mongoose.Types.ObjectId();
+      const messagePayload = {
+        msg: 'test',
+        msgFrom: 'user',
+        msgDateTime: new Date(),
+        type: 'direct' as const,
+      };
+      const messageResponse = { _id: new mongoose.Types.ObjectId(), ...messagePayload };
+      const chatResponse = {
+        _id: chatId,
+        participants: [],
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      createMessageSpy.mockResolvedValue(messageResponse as Message);
+      addMessageSpy.mockResolvedValue(chatResponse as Chat);
+      populateDocumentSpy.mockResolvedValue({ error: 'Population failed' });
+
+      const response = await supertest(app).post(`/chat/${chatId}/addMessage`).send(messagePayload);
+
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Population failed');
+    });
   });
 
   describe('GET /chat/:chatId', () => {
@@ -290,6 +317,22 @@ describe('Chat Controller', () => {
       expect(response.status).toBe(500);
       expect(response.text).toBe('Chat not found');
     });
+
+    it('should return 500 if populateDocument fails', async () => {
+      const chatId = new mongoose.Types.ObjectId().toString();
+      const chatResponse = {
+        _id: new mongoose.Types.ObjectId(chatId),
+        participants: [],
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      getChatSpy.mockResolvedValue(chatResponse as Chat);
+      populateDocumentSpy.mockResolvedValue({ error: 'Population failed' });
+      const response = await supertest(app).get(`/chat/${chatId}`);
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Population failed');
+    });
   });
 
   describe('POST /chat/:chatId/addParticipant', () => {
@@ -339,6 +382,24 @@ describe('Chat Controller', () => {
       const response = await supertest(app).post(`/chat/${chatId}/addParticipant`).send({ userId });
       expect(response.status).toBe(500);
       expect(response.text).toBe('Failed to add participant');
+    });
+
+    it('should return 500 if populateDocument fails', async () => {
+      const chatId = new mongoose.Types.ObjectId().toString();
+      const userId = new mongoose.Types.ObjectId().toString();
+      const chatResponse = {
+        _id: new mongoose.Types.ObjectId(chatId),
+        participants: [],
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      addParticipantSpy.mockResolvedValue(chatResponse as Chat);
+      populateDocumentSpy.mockResolvedValue({ error: 'Population failed' });
+
+      const response = await supertest(app).post(`/chat/${chatId}/addParticipant`).send({ userId });
+      expect(response.status).toBe(500);
+      expect(response.text).toBe('Population failed');
     });
   });
 
