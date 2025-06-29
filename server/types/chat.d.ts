@@ -79,7 +79,7 @@ export interface AddMessageRequestToChat extends ChatIdRequest {
  */
 export interface AddParticipantPayload {
   // TODO: Task 3 - Define the properties of the AddParticipantPayload interface
-  username: string;
+  userId: string;
 }
 
 /**

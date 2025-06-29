@@ -54,7 +54,7 @@ const chatController = (socket: FakeSOSocket) => {
    */
   const isAddParticipantRequestValid = (req: AddParticipantRequest): boolean =>
     // TODO: Task 3 - Implement the isAddParticipantRequestValid function.
-    !!req.body?.username; // !! is the conversion to boolean syntax used in TS
+    !!req.body?.userId; // !! is the conversion to boolean syntax used in TS
 
   /**
    * Creates a new chat with the given participants (and optional initial messages).
@@ -171,14 +171,14 @@ const chatController = (socket: FakeSOSocket) => {
       const { username } = req.params;
       const chats = await getChatsByParticipants([username]);
       const populatedChats = await Promise.all(
-        chats.map(async (chat: Chat) => {
-          const populated = await populateDocument(chat._id!.toString(), 'chat');
-          if ('error' in populated) {
-            throw new Error(`Failed to populate chat ${chat._id!}: ${populated.error}`);
-          }
-          return populated;
-        }),
+        chats.map(chat => populateDocument(chat._id!.toString(), 'chat')),
       );
+
+      // Check for errors during population
+      if (populatedChats.some(chat => 'error' in chat)) {
+        res.status(500).send('Error retrieving chat: Failed populating chats');
+        return;
+      }
       res.status(200).json(populatedChats);
     } catch (error) {
       res.status(500).send((error as Error).message);
@@ -203,17 +203,17 @@ const chatController = (socket: FakeSOSocket) => {
     }
     try {
       const { chatId } = req.params;
-      const { username } = req.body;
-      const user = await getUserByUsername(username);
-      if (!user || 'error' in user) {
-        res.status(404).send('User not found');
-        return;
-      }
-      const updatedChat = await addParticipantToChat(chatId, user._id!.toString());
+      const { userId } = req.body;
+
+      const updatedChat = await addParticipantToChat(chatId, userId);
       if ('error' in updatedChat) {
         throw new Error(updatedChat.error);
       }
-      res.status(200).json(updatedChat);
+      const populatedChat = await populateDocument(updatedChat._id!.toString(), 'chat');
+      if ('error' in populatedChat) {
+        throw new Error(populatedChat.error);
+      }
+      res.status(200).json(populatedChat);
     } catch (error) {
       res.status(500).send((error as Error).message);
     }
@@ -223,13 +223,13 @@ const chatController = (socket: FakeSOSocket) => {
     // TODO: Task 3 - Implement the `joinChat` event listener on `conn`
     // The socket room will be defined to have the chat ID as the room name
     conn.on('joinChat', chatId => {
-      conn.join(chatId);
+      conn.join(chatId as string);
     });
     // TODO: Task 3 - Implement the `leaveChat` event listener on `conn`
     // You should only leave the chat if the chat ID is provided/defined
     conn.on('leaveChat', chatId => {
       if (chatId) {
-        conn.leave(chatId);
+        conn.leave(chatId as string);
       }
     });
   });
