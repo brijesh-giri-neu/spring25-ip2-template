@@ -18,6 +18,19 @@ import { Message } from '../../types/message';
 const mockingoose = require('mockingoose');
 
 describe('Chat service', () => {
+  const mockMessage: Message = {
+    _id: new mongoose.Types.ObjectId(),
+    msg: 'Hello!',
+    msgFrom: 'testUser',
+    msgDateTime: new Date('2025-01-01T00:00:00Z'),
+    type: 'direct',
+  };
+
+  const mockChatPayload: CreateChatPayload = {
+    participants: ['testUser'],
+    messages: [mockMessage],
+  };
+
   beforeEach(() => {
     mockingoose.resetAll();
     jest.clearAllMocks();
